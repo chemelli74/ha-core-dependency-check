@@ -1,0 +1,85 @@
+# Home Assistant Core dependency check
+
+Reusable composite GitHub Actions for checking a Python library's runtime dependencies against Home Assistant Core's `requirements_all.txt`.
+
+Two actions are provided:
+
+| Action | Compares against |
+|---|---|
+| `chemelli74/ha-core-dependency-check/dev@v1` | the `dev` branch of Home Assistant Core |
+| `chemelli74/ha-core-dependency-check/release@v1` | the latest published Home Assistant Core release (resolved via the GitHub releases API) |
+
+## One-line integration
+
+Add one or both steps to an existing job in `.github/workflows/ci.yaml`:
+
+```yaml
+- uses: chemelli74/ha-core-dependency-check/dev@v1
+- uses: chemelli74/ha-core-dependency-check/release@v1
+```
+
+By default, each action auto-detects how the library declares its dependencies and warns about dependencies that Core does not declare.
+
+The action fails if a library's declared version constraint is not satisfied by the exact version pinned by Core.
+
+Typical use: `release` tells you whether a new library version can be bumped in Core right now; `dev` tells you whether it will be compatible with the next Core release.
+
+## Supported dependency declarations
+
+Every file that exists is read, and the dependencies found are combined. A missing file is skipped; the check fails only if no file declares any dependencies.
+
+| Source | What is read |
+|---|---|
+| `pyproject.toml` | PEP 621 `[project].dependencies` |
+| `pyproject.toml` | Dynamic dependencies via `[tool.setuptools.dynamic] dependencies = {file = [...]}` |
+| `pyproject.toml` | Poetry `[tool.poetry.dependencies]` (`^`/`~` constraints are converted; `python`, optional, git and path dependencies are skipped) |
+| `setup.cfg` | `[options] install_requires`, including `file:` references |
+| `setup.py` | `setup(install_requires=...)` given as a literal list or a module-level variable holding one. The file is parsed, never executed |
+| `requirements.txt` | Pip requirements, following `-r` includes |
+
+## Optional configuration
+
+```yaml
+- uses: chemelli74/ha-core-dependency-check/release@v1
+  with:
+    pyproject: pyproject.toml
+    requirements: requirements.txt
+    missing-dependency-policy: warn
+```
+
+Inputs (same for both actions):
+
+| Input | Default | Description |
+|---|---|---|
+| `pyproject` | `pyproject.toml` | Path to `pyproject.toml` (PEP 621 or Poetry) |
+| `setup-cfg` | `setup.cfg` | Path to `setup.cfg` |
+| `setup-py` | `setup.py` | Path to `setup.py` |
+| `requirements` | `requirements.txt` | Path to library requirements |
+| `missing-dependency-policy` | `warn` | `warn` or `fail` for dependencies absent from Core |
+
+Outputs:
+
+| Output | Description |
+|---|---|
+| `core-ref` | Core ref the dependencies were compared against (`dev` or the release tag, e.g. `2026.10.3`) |
+
+## Requirements and behavior
+
+- Requires a GitHub Actions runner with Python 3.13 available.
+- Installs `packaging` for PEP 440 parsing.
+- The `release` action uses the workflow's `github.token` to query the latest Core release, avoiding unauthenticated API rate limits.
+- Downloads Core's `requirements_all.txt` and `requirements.txt`; `-r` includes are followed.
+- Evaluates environment markers on the runner.
+- Does not install Home Assistant Core.
+- Does not resolve dynamic build metadata or arbitrary pip options.
+- A Core dependency without an exact `==` pin is reported as a warning and skipped.
+
+## Running locally
+
+```bash
+HA_CORE_REF=latest-release /path/to/ha-core-dependency-check/scripts/run.sh
+```
+
+`HA_CORE_REF` also accepts any Core branch, tag or commit. The action inputs map to the `PYPROJECT`, `SETUP_CFG`, `SETUP_PY`, `LIBRARY_REQUIREMENTS` and `MISSING_POLICY` environment variables.
+
+Run the offline fixture tests with `tests/test_fixtures.sh`.

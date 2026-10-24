@@ -1,0 +1,42 @@
+name: Test action
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install packaging
+      - run: python -m compileall -q scripts
+      - run: bash -n scripts/run.sh
+      - run: tests/test_fixtures.sh
+
+  action:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [dev, release]
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        uses: ./dev
+        if: matrix.variant == 'dev'
+        with:
+          pyproject: tests/fixtures/pep621/pyproject.toml
+      - id: check-release
+        uses: ./release
+        if: matrix.variant == 'release'
+        with:
+          pyproject: tests/fixtures/pep621/pyproject.toml
+      - run: echo "Compared against ${{ steps.check.outputs.core-ref }}${{ steps.check-release.outputs.core-ref }}"
