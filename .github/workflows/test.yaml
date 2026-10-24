@@ -20,6 +20,7 @@ jobs:
       - run: python -m compileall -q scripts
       - run: bash -n scripts/run.sh
       - run: tests/test_fixtures.sh
+      - run: tests/test_select_ref.sh
 
   action:
     runs-on: ubuntu-latest
@@ -40,3 +41,16 @@ jobs:
         with:
           pyproject: tests/fixtures/pep621/pyproject.toml
       - run: echo "Compared against ${{ steps.check.outputs.core-ref }}${{ steps.check-release.outputs.core-ref }}"
+
+  label-action:
+    # On pull requests the outcome depends on this repo's own labels; label
+    # selection is covered by tests/test_select_ref.sh instead
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        uses: ./label
+        with:
+          pyproject: tests/fixtures/pep621/pyproject.toml
+      - run: test -z "${{ steps.check.outputs.core-ref }}"
