@@ -8,7 +8,7 @@ Three actions are provided:
 |---|---|
 | `chemelli74/ha-core-dependency-check/dev@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0` | the `dev` branch of Home Assistant Core |
 | `chemelli74/ha-core-dependency-check/release@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0` | the latest published Home Assistant Core release (resolved via the GitHub releases API) |
-| `chemelli74/ha-core-dependency-check/label@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0` | `dev` or the latest release, chosen by a pull request label |
+| `chemelli74/ha-core-dependency-check/label@c036686f47c5badcb254d5cd3c93344ea8dd0bf8 # v1.2.0` | `dev` or the latest release, chosen by a pull request label |
 
 ## One-line integration
 
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: chemelli74/ha-core-dependency-check/label@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0
+      - uses: chemelli74/ha-core-dependency-check/label@c036686f47c5badcb254d5cd3c93344ea8dd0bf8 # v1.2.0
 ```
 
 Both labels must exist in your repository.
