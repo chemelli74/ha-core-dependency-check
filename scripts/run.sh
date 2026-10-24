@@ -24,10 +24,11 @@ core_dir="${RUNNER_TEMP:-$(mktemp -d)}/ha-core-dependencies-${core_ref}"
 mkdir -p "$core_dir"
 base_url="https://raw.githubusercontent.com/home-assistant/core/${core_ref}"
 
-# requirements_all.txt includes requirements.txt via -r
-for file in requirements_all.txt requirements.txt; do
+# requirements_all.txt includes requirements.txt via -r; package_constraints.txt
+# pins transitive dependencies that no integration declares directly
+for file in requirements_all.txt requirements.txt homeassistant/package_constraints.txt; do
   curl --fail --silent --show-error --location \
-    "$base_url/$file" --output "$core_dir/$file"
+    "$base_url/$file" --output "$core_dir/$(basename "$file")"
 done
 
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
@@ -40,5 +41,6 @@ python "$script_dir/check_dependencies.py" \
   --setup-py "${SETUP_PY:-setup.py}" \
   --library-requirements "${LIBRARY_REQUIREMENTS:-requirements.txt}" \
   --core-requirements "$core_dir/requirements_all.txt" \
+  --core-requirements "$core_dir/package_constraints.txt" \
   --core-ref "$core_ref" \
   --missing-policy "${MISSING_POLICY:-warn}"

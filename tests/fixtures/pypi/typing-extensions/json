@@ -1,0 +1,9 @@
+{
+  "releases": {
+    "4.15.0": [{"yanked": false}],
+    "4.16.0": [{"yanked": false}],
+    "4.17.0rc1": [{"yanked": false}],
+    "4.17.0": [{"yanked": true}],
+    "5.0.0": [{"yanked": false}]
+  }
+}

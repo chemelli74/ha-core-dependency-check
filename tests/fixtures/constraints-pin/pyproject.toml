@@ -1,0 +1,4 @@
+[project]
+name = "constraints-pin-library"
+version = "0.0.0"
+dependencies = ["httpx>=0.27"]

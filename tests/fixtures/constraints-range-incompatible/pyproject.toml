@@ -1,0 +1,4 @@
+[project]
+name = "constraints-range-incompatible-library"
+version = "0.0.0"
+dependencies = ["typing-extensions>=4.17"]

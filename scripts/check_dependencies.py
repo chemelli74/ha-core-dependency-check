@@ -6,13 +6,17 @@ from __future__ import annotations
 import argparse
 import ast
 import configparser
+import json
 import re
 import sys
 import tomllib
+import urllib.error
+import urllib.request
 from collections import defaultdict
 from pathlib import Path
 
 from packaging.requirements import InvalidRequirement, Requirement
+from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
 
@@ -260,6 +264,28 @@ def pinned_versions(requirements: list[Requirement]) -> set[Version]:
     return versions
 
 
+def released_versions(pypi_url: str, name: str) -> list[Version]:
+    """Return the non-yanked, final releases of a package on PyPI."""
+    url = f"{pypi_url.rstrip('/')}/{name}/json"
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:
+            releases = json.load(response)["releases"]
+    except (OSError, ValueError, KeyError) as err:
+        raise ValueError(f"cannot read PyPI release list for {name}: {err}") from err
+
+    versions = []
+    for version, files in releases.items():
+        if not files or all(file.get("yanked") for file in files):
+            continue
+        try:
+            parsed = Version(version)
+        except InvalidVersion:
+            continue
+        if not parsed.is_prerelease:
+            versions.append(parsed)
+    return versions
+
+
 def main() -> int:
     """Run the compatibility check."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -267,14 +293,22 @@ def main() -> int:
     parser.add_argument("--setup-cfg", type=Path, default=Path("setup.cfg"))
     parser.add_argument("--setup-py", type=Path, default=Path("setup.py"))
     parser.add_argument("--library-requirements", type=Path, default=Path("requirements.txt"))
-    parser.add_argument("--core-requirements", type=Path, required=True)
+    parser.add_argument(
+        "--core-requirements",
+        type=Path,
+        action="append",
+        required=True,
+        help="Core requirements or constraints file; repeat for several files",
+    )
+    parser.add_argument("--pypi-url", default="https://pypi.org/pypi")
     parser.add_argument("--core-ref", default="unknown")
     parser.add_argument("--missing-policy", choices=("warn", "fail"), default="warn")
     args = parser.parse_args()
 
     print("### HA CORE DEPENDENCY COMPATIBILITY CHECK VERSION 1.1.0 ###")
     print(f"Core ref: {args.core_ref}")
-    print(f"Core requirements: {args.core_requirements}")
+    for path in args.core_requirements:
+        print(f"Core requirements: {path}")
     print(f"Missing dependency policy: {args.missing_policy}")
     print()
 
@@ -302,7 +336,9 @@ def main() -> int:
                 "No dependency declarations found in "
                 + ", ".join(str(path) for path, _ in sources)
             )
-        core = parse_requirements_file(args.core_requirements)
+        core: list[Requirement] = []
+        for path in args.core_requirements:
+            core += parse_requirements_file(path)
     except ValueError as err:
         print(f"ERROR: {err}", file=sys.stderr)
         return 1
@@ -328,9 +364,29 @@ def main() -> int:
             (warnings if args.missing_policy == "warn" else failures).append(message)
             continue
 
-        core_pins = set().union(*(pinned_versions([entry]) for entry in core_entries))
+        core_pins = pinned_versions(core_entries)
         if not core_pins:
-            warnings.append(f"{name}: Core has no exact version pin; comparison skipped")
+            core_range = SpecifierSet()
+            for entry in core_entries:
+                core_range &= entry.specifier
+            for library_req in library_by_name[name]:
+                if not library_req.specifier or not core_range:
+                    continue
+                checked += 1
+                try:
+                    versions = released_versions(args.pypi_url, name)
+                except ValueError as err:
+                    warnings.append(f"{name}: {err}; comparison skipped")
+                    continue
+                if not any(
+                    library_req.specifier.contains(version)
+                    and core_range.contains(version)
+                    for version in versions
+                ):
+                    failures.append(
+                        f"{name}: library requires {library_req.specifier}; "
+                        f"Core requires {core_range}; no release satisfies both"
+                    )
             continue
 
         for library_req in library_by_name[name]:
