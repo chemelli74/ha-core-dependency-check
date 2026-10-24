@@ -2,20 +2,21 @@
 
 Reusable composite GitHub Actions for checking a Python library's runtime dependencies against the versions Home Assistant Core installs: `requirements_all.txt` and `homeassistant/package_constraints.txt`.
 
-Two actions are provided:
+Three actions are provided:
 
 | Action | Compares against |
 |---|---|
-| `chemelli74/ha-core-dependency-check/dev@v1` | the `dev` branch of Home Assistant Core |
-| `chemelli74/ha-core-dependency-check/release@v1` | the latest published Home Assistant Core release (resolved via the GitHub releases API) |
+| `chemelli74/ha-core-dependency-check/dev@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0` | the `dev` branch of Home Assistant Core |
+| `chemelli74/ha-core-dependency-check/release@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0` | the latest published Home Assistant Core release (resolved via the GitHub releases API) |
+| `chemelli74/ha-core-dependency-check/label@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0` | `dev` or the latest release, chosen by a pull request label |
 
 ## One-line integration
 
 Add one or both steps to an existing job in `.github/workflows/ci.yaml`:
 
 ```yaml
-- uses: chemelli74/ha-core-dependency-check/dev@v1
-- uses: chemelli74/ha-core-dependency-check/release@v1
+- uses: chemelli74/ha-core-dependency-check/dev@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0
+- uses: chemelli74/ha-core-dependency-check/release@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0
 ```
 
 By default, each action auto-detects how the library declares its dependencies and warns about dependencies that Core does not declare.
@@ -23,6 +24,39 @@ By default, each action auto-detects how the library declares its dependencies a
 The action fails if a library's declared version constraint is not satisfied by the exact version pinned by Core. When Core only constrains a range (for example `typing-extensions>=4.16.0,<5.0`), it fails if no released version on PyPI satisfies both the library and Core.
 
 Typical use: `release` tells you whether a new library version can be bumped in Core right now; `dev` tells you whether it will be compatible with the next Core release.
+
+## Choosing the check with a pull request label
+
+The `label` action runs one of the two checks, depending on which label the pull request has:
+
+| Label | Check |
+|---|---|
+| `core-beta-release` | against Core `dev`: the change is meant for the next Core beta |
+| `core-patch-release` | against the latest Core release: the change is meant for a Core patch release |
+
+The check fails with a "label missing" error if the pull request has neither label or both. On events other than pull requests (for example a push to `main`), it is skipped.
+
+GitHub doesn't run `pull_request` workflows when labels change unless you ask for it, so add `labeled` and `unlabeled` to the trigger. A separate workflow keeps label changes from re-running the rest of your CI:
+
+```yaml
+name: Home Assistant Core dependencies
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  ha-core-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chemelli74/ha-core-dependency-check/label@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0
+```
+
+Both labels must exist in your repository.
 
 ## Supported dependency declarations
 
@@ -40,14 +74,14 @@ Every file that exists is read, and the dependencies found are combined. A missi
 ## Optional configuration
 
 ```yaml
-- uses: chemelli74/ha-core-dependency-check/release@v1
+- uses: chemelli74/ha-core-dependency-check/release@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0
   with:
     pyproject: pyproject.toml
     requirements: requirements.txt
     missing-dependency-policy: warn
 ```
 
-Inputs (same for both actions):
+Inputs (same for all actions):
 
 | Input | Default | Description |
 |---|---|---|
@@ -61,7 +95,7 @@ Outputs:
 
 | Output | Description |
 |---|---|
-| `core-ref` | Core ref the dependencies were compared against (`dev` or the release tag, e.g. `2026.10.3`) |
+| `core-ref` | Core ref the dependencies were compared against (`dev` or the release tag, e.g. `2026.10.3`); empty when `label` skips the check |
 
 ## Requirements and behavior
 
@@ -82,4 +116,4 @@ HA_CORE_REF=latest-release /path/to/ha-core-dependency-check/scripts/run.sh
 
 `HA_CORE_REF` also accepts any Core branch, tag or commit. The action inputs map to the `PYPROJECT`, `SETUP_CFG`, `SETUP_PY`, `LIBRARY_REQUIREMENTS` and `MISSING_POLICY` environment variables.
 
-Run the offline fixture tests with `tests/test_fixtures.sh`.
+Run the offline tests with `tests/test_fixtures.sh` and `tests/test_select_ref.sh`.
