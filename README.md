@@ -1,6 +1,6 @@
 # Home Assistant Core dependency check
 
-Reusable composite GitHub Actions for checking a Python library's runtime dependencies against Home Assistant Core's `requirements_all.txt`.
+Reusable composite GitHub Actions for checking a Python library's runtime dependencies against the versions Home Assistant Core installs: `requirements_all.txt` and `homeassistant/package_constraints.txt`.
 
 Two actions are provided:
 
@@ -20,7 +20,7 @@ Add one or both steps to an existing job in `.github/workflows/ci.yaml`:
 
 By default, each action auto-detects how the library declares its dependencies and warns about dependencies that Core does not declare.
 
-The action fails if a library's declared version constraint is not satisfied by the exact version pinned by Core.
+The action fails if a library's declared version constraint is not satisfied by the exact version pinned by Core. When Core only constrains a range (for example `typing-extensions>=4.16.0,<5.0`), it fails if no released version on PyPI satisfies both the library and Core.
 
 Typical use: `release` tells you whether a new library version can be bumped in Core right now; `dev` tells you whether it will be compatible with the next Core release.
 
@@ -68,11 +68,11 @@ Outputs:
 - Requires a GitHub Actions runner with Python 3.13 available.
 - Installs `packaging` for PEP 440 parsing.
 - The `release` action uses the workflow's `github.token` to query the latest Core release, avoiding unauthenticated API rate limits.
-- Downloads Core's `requirements_all.txt` and `requirements.txt`; `-r` includes are followed.
+- Downloads Core's `requirements_all.txt`, `requirements.txt` and `homeassistant/package_constraints.txt`; `-r` includes are followed. The constraints file pins transitive dependencies (for example `httpx`) that no integration declares directly.
 - Evaluates environment markers on the runner.
 - Does not install Home Assistant Core.
 - Does not resolve dynamic build metadata or arbitrary pip options.
-- A Core dependency without an exact `==` pin is reported as a warning and skipped.
+- For a Core dependency without an exact `==` pin, the release list is read from PyPI; yanked releases and pre-releases are ignored. If PyPI cannot be reached, the dependency is reported as a warning and skipped.
 
 ## Running locally
 
