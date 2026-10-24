@@ -1,0 +1,9 @@
+[tool.poetry]
+name = "poetry-library"
+version = "0.0.0"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+aiohttp = "^3.9"
+orjson = {version = "~3.11"}
+yarl = "*"

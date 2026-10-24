@@ -1,0 +1,4 @@
+[project]
+name = "pep621-library"
+version = "0.0.0"
+dependencies = ["aiohttp>=3.9", "orjson>=3.10"]

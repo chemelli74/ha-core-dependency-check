@@ -1,0 +1,55 @@
+name: Home Assistant Core (dev) dependency compatibility
+description: Check Python library dependencies against the Home Assistant Core dev branch
+author: chemelli74
+
+inputs:
+  pyproject:
+    description: Path to pyproject.toml (PEP 621 or Poetry; skipped if missing)
+    required: false
+    default: pyproject.toml
+  setup-cfg:
+    description: Path to setup.cfg (skipped if missing)
+    required: false
+    default: setup.cfg
+  setup-py:
+    description: Path to setup.py, parsed statically (skipped if missing)
+    required: false
+    default: setup.py
+  requirements:
+    description: Path to the library requirements.txt (skipped if missing)
+    required: false
+    default: requirements.txt
+  missing-dependency-policy:
+    description: How to handle library dependencies absent from Core (warn or fail)
+    required: false
+    default: warn
+
+outputs:
+  core-ref:
+    description: Home Assistant Core ref the dependencies were compared against
+    value: ${{ steps.check.outputs.core-ref }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python for dependency checker
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+
+    - name: Install checker dependency
+      shell: bash
+      run: python -m pip install packaging
+
+    - name: Compare library dependencies with Core
+      id: check
+      shell: bash
+      env:
+        HA_CORE_REF: dev
+        GH_TOKEN: ${{ github.token }}
+        PYPROJECT: ${{ inputs.pyproject }}
+        SETUP_CFG: ${{ inputs.setup-cfg }}
+        SETUP_PY: ${{ inputs.setup-py }}
+        LIBRARY_REQUIREMENTS: ${{ inputs.requirements }}
+        MISSING_POLICY: ${{ inputs.missing-dependency-policy }}
+      run: "${{ github.action_path }}/../scripts/run.sh"
