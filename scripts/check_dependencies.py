@@ -286,6 +286,36 @@ def released_versions(pypi_url: str, name: str) -> list[Version]:
     return versions
 
 
+def read_library(
+    pyproject: Path, setup_cfg: Path, setup_py: Path, requirements_txt: Path
+) -> list[Requirement]:
+    """Read and combine the dependencies from every declaration file that exists."""
+    sources = (
+        (pyproject, parse_pyproject),
+        (setup_cfg, parse_setup_cfg),
+        (setup_py, parse_setup_py),
+        (requirements_txt, parse_requirements_file),
+    )
+    library: list[Requirement] = []
+    found = False
+    for path, parse in sources:
+        if not path.is_file():
+            continue
+        requirements = parse(path)
+        if requirements is None:
+            print(f"{path}: no dependency declarations")
+            continue
+        found = True
+        print(f"{path}: {len(requirements)} dependencies")
+        library += requirements
+    if not found:
+        raise ValueError(
+            "No dependency declarations found in "
+            + ", ".join(str(path) for path, _ in sources)
+        )
+    return library
+
+
 def main() -> int:
     """Run the compatibility check."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -312,30 +342,10 @@ def main() -> int:
     print(f"Missing dependency policy: {args.missing_policy}")
     print()
 
-    sources = (
-        (args.pyproject, parse_pyproject),
-        (args.setup_cfg, parse_setup_cfg),
-        (args.setup_py, parse_setup_py),
-        (args.library_requirements, parse_requirements_file),
-    )
-    library: list[Requirement] = []
-    found = False
     try:
-        for path, parse in sources:
-            if not path.is_file():
-                continue
-            requirements = parse(path)
-            if requirements is None:
-                print(f"{path}: no dependency declarations")
-                continue
-            found = True
-            print(f"{path}: {len(requirements)} dependencies")
-            library += requirements
-        if not found:
-            raise ValueError(
-                "No dependency declarations found in "
-                + ", ".join(str(path) for path, _ in sources)
-            )
+        library = read_library(
+            args.pyproject, args.setup_cfg, args.setup_py, args.library_requirements
+        )
         core: list[Requirement] = []
         for path in args.core_requirements:
             core += parse_requirements_file(path)
