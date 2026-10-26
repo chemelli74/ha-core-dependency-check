@@ -8,7 +8,7 @@ Three actions are provided:
 |---|---|
 | `chemelli74/ha-core-dependency-check/dev@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0` | the `dev` branch of Home Assistant Core |
 | `chemelli74/ha-core-dependency-check/release@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0` | the latest published Home Assistant Core release (resolved via the GitHub releases API) |
-| `chemelli74/ha-core-dependency-check/label@c036686f47c5badcb254d5cd3c93344ea8dd0bf8 # v1.2.0` | `dev` or the latest release, chosen by a pull request label |
+| `chemelli74/ha-core-dependency-check/label@c036686f47c5badcb254d5cd3c93344ea8dd0bf8 # v1.2.0` | `dev` or the latest release, chosen by a pull request label, only when the pull request changes dependencies |
 
 ## One-line integration
 
@@ -34,7 +34,9 @@ The `label` action runs one of the two checks, depending on which label the pull
 | `core-beta-release` | against Core `dev`: the change is meant for the next Core beta |
 | `core-patch-release` | against the latest Core release: the change is meant for a Core patch release |
 
-The check fails with a "label missing" error if the pull request has neither label or both. On events other than pull requests (for example a push to `main`), it is skipped.
+The check only runs when the pull request changes the library's declared dependencies: it compares them between the pull request's base commit and its head. Other changes, such as a new version number or tool settings in `pyproject.toml`, don't count. When dependencies are unchanged, the check is skipped and no label is needed.
+
+When dependencies changed, the check fails with a "label missing" error if the pull request has neither label or both. On events other than pull requests (for example a push to `main`), it is skipped.
 
 GitHub doesn't run `pull_request` workflows when labels change unless you ask for it, so add `labeled` and `unlabeled` to the trigger. A separate workflow keeps label changes from re-running the rest of your CI:
 
@@ -116,4 +118,4 @@ HA_CORE_REF=latest-release /path/to/ha-core-dependency-check/scripts/run.sh
 
 `HA_CORE_REF` also accepts any Core branch, tag or commit. The action inputs map to the `PYPROJECT`, `SETUP_CFG`, `SETUP_PY`, `LIBRARY_REQUIREMENTS` and `MISSING_POLICY` environment variables.
 
-Run the offline tests with `tests/test_fixtures.sh` and `tests/test_select_ref.sh`.
+Run the offline tests with `tests/test_fixtures.sh`, `tests/test_select_ref.sh` and `tests/test_deps_changed.sh`.

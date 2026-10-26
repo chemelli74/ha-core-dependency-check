@@ -20,6 +20,9 @@ def main() -> int:
     if event_name not in ("pull_request", "pull_request_target"):
         print(f"::notice::Not a pull request ({event_name}); dependency check skipped")
         result = {"skip": "true", "core-ref": ""}
+    elif os.environ.get("DEPS_CHANGED") == "false":
+        print("::notice::Dependencies unchanged; dependency check skipped")
+        result = {"skip": "true", "core-ref": ""}
     else:
         selected = [
             ref
