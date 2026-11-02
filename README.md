@@ -38,7 +38,7 @@ The `label` action runs one of the two checks, depending on which label the pull
 
 The check only runs when the pull request changes the library's declared dependencies: it compares them between the pull request's base commit and its head. Other changes, such as a new version number or tool settings in `pyproject.toml`, don't count. When dependencies are unchanged, the check is skipped and no label is needed.
 
-When dependencies changed, the check fails with a "label missing" error if the pull request has neither label or both. On events other than pull requests (for example a push to `main`), it is skipped.
+When dependencies changed, the check fails with a "label missing" error if the pull request has neither label or both. On events other than pull requests (for example a push to `main`), it is skipped. Use the `pull_request` event: `pull_request_target` checks out the base branch instead of the pull request, so the action fails on it.
 
 GitHub doesn't run `pull_request` workflows when labels change unless you ask for it, so add `labeled` and `unlabeled` to the trigger. A separate workflow keeps label changes from re-running the rest of your CI:
 

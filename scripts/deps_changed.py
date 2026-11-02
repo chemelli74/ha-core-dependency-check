@@ -19,11 +19,20 @@ def normalized(requirements: list[Requirement]) -> set[str]:
     result = set()
     for requirement in requirements:
         extras = f"[{','.join(sorted(requirement.extras))}]" if requirement.extras else ""
+        url = f" @ {requirement.url}" if requirement.url else ""
         marker = f"; {requirement.marker}" if requirement.marker else ""
         result.add(
-            f"{canonicalize_name(requirement.name)}{extras}{requirement.specifier}{marker}"
+            f"{canonicalize_name(requirement.name)}{extras}{requirement.specifier}{url}{marker}"
         )
     return result
+
+
+def in_base(base_dir: Path, path: Path) -> Path:
+    """Map a checkout path to the same relative path under base_dir."""
+    if path.is_absolute():
+        # Raises ValueError outside the checkout, which counts as a change
+        path = path.relative_to(Path.cwd())
+    return base_dir / path
 
 
 def main() -> int:
@@ -40,7 +49,7 @@ def main() -> int:
     # Unreadable declarations count as a change, so the check runs and reports them
     try:
         head = normalized(read_library(*paths))
-        base = normalized(read_library(*(args.base_dir / path for path in paths)))
+        base = normalized(read_library(*(in_base(args.base_dir, path) for path in paths)))
     except ValueError as err:
         print(f"Cannot compare dependencies ({err}); treating them as changed")
         changed = True
