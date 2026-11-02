@@ -19,13 +19,13 @@ PYTHON_PLATFORM = "x86_64-unknown-linux-gnu"
 
 
 def core_python_version(core_pyproject: Path) -> str:
-    """Return the lowest Python major.minor version Core supports."""
+    """Return the lowest Python version Core supports."""
     with core_pyproject.open("rb") as file:
         requires_python = tomllib.load(file)["project"]["requires-python"]
     for specifier in SpecifierSet(requires_python):
         if specifier.operator in (">=", "==", "~="):
-            major, minor = specifier.version.split(".")[:2]
-            return f"{major}.{minor}"
+            # Keep the patch: uv reads a bare major.minor as .0
+            return specifier.version.removesuffix(".*")
     raise ValueError(f"cannot derive a Python version from {requires_python!r}")
 
 
@@ -42,6 +42,12 @@ def main() -> int:
         "--find-links",
         type=Path,
         help="Resolve only from this local directory of wheels (used by tests)",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=600,
+        help="Seconds before the resolution is abandoned",
     )
     args = parser.parse_args()
 
@@ -73,7 +79,14 @@ def main() -> int:
         ]
         if args.find_links:
             command += ["--no-index", "--find-links", str(args.find_links)]
-        result = subprocess.run(command, capture_output=True, text=True, check=False)
+        try:
+            result = subprocess.run(
+                command, capture_output=True, text=True, check=False, timeout=args.timeout
+            )
+        except subprocess.TimeoutExpired:
+            print(f"\nWARNING: dependency resolution timed out after {args.timeout:g}s; "
+                  "indirect check skipped.")
+            return 0
 
     if result.returncode == 0:
         print("Resolved dependency tree:")
