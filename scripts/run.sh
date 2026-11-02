@@ -25,8 +25,9 @@ mkdir -p "$core_dir"
 base_url="https://raw.githubusercontent.com/home-assistant/core/${core_ref}"
 
 # requirements_all.txt includes requirements.txt via -r; package_constraints.txt
-# pins transitive dependencies that no integration declares directly
-for file in requirements_all.txt requirements.txt homeassistant/package_constraints.txt; do
+# pins transitive dependencies that no integration declares directly;
+# pyproject.toml gives the Python version Core runs on
+for file in requirements_all.txt requirements.txt homeassistant/package_constraints.txt pyproject.toml; do
   curl --fail --silent --show-error --location \
     "$base_url/$file" --output "$core_dir/$(basename "$file")"
 done
@@ -35,12 +36,20 @@ if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   echo "core-ref=${core_ref}" >> "$GITHUB_OUTPUT"
 fi
 
-python "$script_dir/check_dependencies.py" \
-  --pyproject "${PYPROJECT:-pyproject.toml}" \
-  --setup-cfg "${SETUP_CFG:-setup.cfg}" \
-  --setup-py "${SETUP_PY:-setup.py}" \
-  --library-requirements "${LIBRARY_REQUIREMENTS:-requirements.txt}" \
-  --core-requirements "$core_dir/requirements_all.txt" \
-  --core-requirements "$core_dir/package_constraints.txt" \
+library_args=(
+  --pyproject "${PYPROJECT:-pyproject.toml}"
+  --setup-cfg "${SETUP_CFG:-setup.cfg}"
+  --setup-py "${SETUP_PY:-setup.py}"
+  --library-requirements "${LIBRARY_REQUIREMENTS:-requirements.txt}"
+  --core-requirements "$core_dir/requirements_all.txt"
+  --core-requirements "$core_dir/package_constraints.txt"
+)
+
+status=0
+python "$script_dir/check_dependencies.py" "${library_args[@]}" \
   --core-ref "$core_ref" \
-  --missing-policy "${MISSING_POLICY:-warn}"
+  --missing-policy "${MISSING_POLICY:-warn}" || status=1
+echo
+python "$script_dir/resolve_dependencies.py" "${library_args[@]}" \
+  --core-pyproject "$core_dir/pyproject.toml" || status=1
+exit $status

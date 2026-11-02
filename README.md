@@ -23,6 +23,8 @@ By default, each action auto-detects how the library declares its dependencies a
 
 The action fails if a library's declared version constraint is not satisfied by the exact version pinned by Core. When Core only constrains a range (for example `typing-extensions>=4.16.0,<5.0`), it fails if no released version on PyPI satisfies both the library and Core.
 
+It also checks indirect dependencies, the way Core's own install does: it resolves the library's full dependency tree with `uv`, using Core's pins as constraints, for Core's Python version on Linux. This catches a bump that is only blocked further down the tree, for example a new version of a dependency that requires a newer version of a package Core pins.
+
 Typical use: `release` tells you whether a new library version can be bumped in Core right now; `dev` tells you whether it will be compatible with the next Core release.
 
 ## Choosing the check with a pull request label
@@ -102,9 +104,10 @@ Outputs:
 ## Requirements and behavior
 
 - Requires a GitHub Actions runner with Python 3.13 available.
-- Installs `packaging` for PEP 440 parsing.
+- Installs `packaging` for PEP 440 parsing and `uv` for dependency resolution.
+- The indirect check fails only when `uv` reports that no solution exists. Any other `uv` error (for example a network problem) is reported as a warning and the indirect check is skipped.
 - The `release` action uses the workflow's `github.token` to query the latest Core release, avoiding unauthenticated API rate limits.
-- Downloads Core's `requirements_all.txt`, `requirements.txt` and `homeassistant/package_constraints.txt`; `-r` includes are followed. The constraints file pins transitive dependencies (for example `httpx`) that no integration declares directly.
+- Downloads Core's `requirements_all.txt`, `requirements.txt`, `homeassistant/package_constraints.txt` and `pyproject.toml` (for the Python version); `-r` includes are followed. The constraints file pins transitive dependencies (for example `httpx`) that no integration declares directly.
 - Evaluates environment markers on the runner.
 - Does not install Home Assistant Core.
 - Does not resolve dynamic build metadata or arbitrary pip options.
@@ -118,4 +121,4 @@ HA_CORE_REF=latest-release /path/to/ha-core-dependency-check/scripts/run.sh
 
 `HA_CORE_REF` also accepts any Core branch, tag or commit. The action inputs map to the `PYPROJECT`, `SETUP_CFG`, `SETUP_PY`, `LIBRARY_REQUIREMENTS` and `MISSING_POLICY` environment variables.
 
-Run the offline tests with `tests/test_fixtures.sh`, `tests/test_select_ref.sh` and `tests/test_deps_changed.sh`.
+Run the offline tests with `tests/test_fixtures.sh`, `tests/test_select_ref.sh`, `tests/test_deps_changed.sh` and `tests/test_resolve.sh` (needs `uv`).

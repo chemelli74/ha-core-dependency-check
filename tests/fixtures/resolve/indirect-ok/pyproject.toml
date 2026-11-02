@@ -1,0 +1,4 @@
+[project]
+name = "indirect-ok-library"
+version = "0.0.0"
+dependencies = ["liba>=1"]
