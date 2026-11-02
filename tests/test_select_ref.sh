@@ -31,6 +31,7 @@ expect both-labels pull_request '["core-beta-release", "core-patch-release"]' 1 
 expect no-label pull_request '["bug"]' 1 ""
 expect empty-labels pull_request '[]' 1 ""
 expect push push 'null' 0 "skip=true core-ref= "
+expect pull-request-target pull_request_target '["core-patch-release"]' 1 ""
 expect deps-unchanged-no-label pull_request '[]' 0 "skip=true core-ref= " false
 expect deps-unchanged-both-labels pull_request '["core-beta-release", "core-patch-release"]' 0 "skip=true core-ref= " false
 expect deps-changed-no-label pull_request '[]' 1 "" true
