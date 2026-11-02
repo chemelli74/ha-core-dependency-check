@@ -1,0 +1,4 @@
+[project]
+name = "changes-library"
+version = "1.0.0"
+dependencies = ["pkg @ https://example.test/b.whl"]

@@ -21,6 +21,7 @@ jobs:
       - run: bash -n scripts/run.sh
       - run: tests/test_fixtures.sh
       - run: tests/test_select_ref.sh
+      - run: tests/test_deps_changed.sh
 
   action:
     runs-on: ubuntu-latest

@@ -1,0 +1,4 @@
+[project]
+name = "changes-library"
+version = "1.0.0"
+dependencies = ["typing_extensions>=4.5", "aiohttp>=3.9"]

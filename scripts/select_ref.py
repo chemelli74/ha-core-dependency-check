@@ -17,8 +17,18 @@ def main() -> int:
     # Labels come from the environment, never interpolated into the shell
     labels = set(json.loads(os.environ.get("LABELS") or "null") or [])
 
-    if event_name not in ("pull_request", "pull_request_target"):
+    if event_name == "pull_request_target":
+        # The default checkout is the base branch, so the PR's dependencies are never read
+        print(
+            "::error::Run this action on 'pull_request', not 'pull_request_target': "
+            "pull_request_target checks out the base branch instead of the pull request"
+        )
+        return 1
+    if event_name != "pull_request":
         print(f"::notice::Not a pull request ({event_name}); dependency check skipped")
+        result = {"skip": "true", "core-ref": ""}
+    elif os.environ.get("DEPS_CHANGED") == "false":
+        print("::notice::Dependencies unchanged; dependency check skipped")
         result = {"skip": "true", "core-ref": ""}
     else:
         selected = [
