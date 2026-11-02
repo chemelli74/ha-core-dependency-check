@@ -40,7 +40,7 @@ runs:
     - name: Install checker dependency
       if: github.event_name == 'pull_request'
       shell: bash
-      run: python -m pip install packaging
+      run: python -m pip install packaging uv
 
     - name: Detect dependency changes in the pull request
       id: changes

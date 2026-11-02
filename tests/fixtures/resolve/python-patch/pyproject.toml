@@ -1,0 +1,4 @@
+[project]
+name = "python-patch-library"
+version = "0.0.0"
+dependencies = ["libc>=1"]
