@@ -23,7 +23,7 @@ By default, each action auto-detects how the library declares its dependencies a
 
 The action fails if a library's declared version constraint is not satisfied by the exact version pinned by Core. When Core only constrains a range (for example `typing-extensions>=4.16.0,<5.0`), it fails if no released version on PyPI satisfies both the library and Core.
 
-It also checks indirect dependencies, the way Core's own install does: it resolves the library's full dependency tree with `uv`, using Core's pins as constraints, for Core's Python version on Linux. This catches a bump that is only blocked further down the tree, for example a new version of a dependency that requires a newer version of a package Core pins.
+It also checks indirect dependencies, the way Core's own install does: it resolves the library's dependencies together with everything in Core's `requirements_all.txt`, under `package_constraints.txt`, with `uv`, for Core's Python version on Linux. Core's pin of the library itself is left out, since that is the version being replaced, when the library name is found in `pyproject.toml`, `setup.cfg` or `setup.py`. Otherwise, Core's pin is kept and the run prints a warning. This catches a bump that is only blocked further down the tree, for example a new dependency version that a library Core installs caps (such as `greeclimate` requiring `pycryptodome<4`).
 
 Typical use: `release` tells you whether a new library version can be bumped in Core right now; `dev` tells you whether it will be compatible with the next Core release.
 
@@ -105,7 +105,7 @@ Outputs:
 
 - Requires a GitHub Actions runner with Python 3.13 available.
 - Installs `packaging` for PEP 440 parsing and `uv` for dependency resolution.
-- The indirect check fails only when `uv` reports that no solution exists. Any other `uv` error (for example a network problem) is reported as a warning and the indirect check is skipped.
+- The indirect check fails only when `uv` reports that no solution exists and Core's requirements resolve without the library. If Core's requirements conflict on their own, or `uv` fails for any other reason (for example a network problem or a 600 s timeout), it is reported as a warning and the indirect check is skipped.
 - The `release` action uses the workflow's `github.token` to query the latest Core release, avoiding unauthenticated API rate limits.
 - Downloads Core's `requirements_all.txt`, `requirements.txt`, `homeassistant/package_constraints.txt` and `pyproject.toml` (for the Python version); `-r` includes are followed. The constraints file pins transitive dependencies (for example `httpx`) that no integration declares directly.
 - Evaluates environment markers on the runner.

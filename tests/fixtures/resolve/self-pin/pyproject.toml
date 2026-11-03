@@ -1,0 +1,4 @@
+[project]
+name = "Self_Pin.Library"
+version = "2.0"
+dependencies = ["libf>=2"]

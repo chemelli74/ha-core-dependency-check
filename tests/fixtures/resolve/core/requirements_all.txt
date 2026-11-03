@@ -1,2 +1,6 @@
 -r requirements.txt
 libb==2.0
+# libd caps libe below 2, like greeclimate caps pycryptodome below 4
+libd==1.0
+# An older release of the self-pin library, whose libf cap the new release drops
+self-pin-library==1.0

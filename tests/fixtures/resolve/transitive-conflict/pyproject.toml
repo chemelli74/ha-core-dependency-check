@@ -1,0 +1,4 @@
+[project]
+name = "transitive-conflict-library"
+version = "0.0.0"
+dependencies = ["libe>=2"]
