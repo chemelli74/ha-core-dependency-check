@@ -50,13 +50,24 @@ def library_name(pyproject: Path, setup_cfg: Path, setup_py: Path) -> str | None
             return config.get("metadata", "name").strip()
     if setup_py.is_file():
         tree = ast.parse(setup_py.read_text(encoding="utf-8"), filename=str(setup_py))
+        assignments: dict[str, ast.expr] = {}
+        for node in tree.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        assignments[target.id] = node.value
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and getattr(
                 node.func, "id", getattr(node.func, "attr", None)
             ) == "setup":
                 for keyword in node.keywords:
-                    if keyword.arg == "name" and isinstance(keyword.value, ast.Constant):
-                        return str(keyword.value.value)
+                    if keyword.arg != "name":
+                        continue
+                    value = keyword.value
+                    if isinstance(value, ast.Name):
+                        value = assignments.get(value.id, value)
+                    if isinstance(value, ast.Constant):
+                        return str(value.value)
     return None
 
 

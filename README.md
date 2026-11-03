@@ -23,7 +23,7 @@ By default, each action auto-detects how the library declares its dependencies a
 
 The action fails if a library's declared version constraint is not satisfied by the exact version pinned by Core. When Core only constrains a range (for example `typing-extensions>=4.16.0,<5.0`), it fails if no released version on PyPI satisfies both the library and Core.
 
-It also checks indirect dependencies, the way Core's own install does: it resolves the library's dependencies together with everything in Core's `requirements_all.txt`, under `package_constraints.txt`, with `uv`, for Core's Python version on Linux. Core's pin of the library itself is left out, since that is the version being replaced. This catches a bump that is only blocked further down the tree, for example a new dependency version that a library Core installs caps (such as `greeclimate` requiring `pycryptodome<4`).
+It also checks indirect dependencies, the way Core's own install does: it resolves the library's dependencies together with everything in Core's `requirements_all.txt`, under `package_constraints.txt`, with `uv`, for Core's Python version on Linux. Core's pin of the library itself is left out, since that is the version being replaced, when the library name is found in `pyproject.toml`, `setup.cfg` or `setup.py`. Otherwise, Core's pin is kept and the run prints a warning. This catches a bump that is only blocked further down the tree, for example a new dependency version that a library Core installs caps (such as `greeclimate` requiring `pycryptodome<4`).
 
 Typical use: `release` tells you whether a new library version can be bumped in Core right now; `dev` tells you whether it will be compatible with the next Core release.
 
