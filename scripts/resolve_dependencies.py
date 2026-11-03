@@ -56,6 +56,7 @@ def library_name(pyproject: Path, setup_cfg: Path, setup_py: Path) -> str | None
                 for target in node.targets:
                     if isinstance(target, ast.Name):
                         assignments[target.id] = node.value
+        # Only the first setup() call, the one parse_setup_py reads dependencies from
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and getattr(
                 node.func, "id", getattr(node.func, "attr", None)
@@ -68,6 +69,7 @@ def library_name(pyproject: Path, setup_cfg: Path, setup_py: Path) -> str | None
                         value = assignments.get(value.id, value)
                     if isinstance(value, ast.Constant):
                         return str(value.value)
+                return None
     return None
 
 

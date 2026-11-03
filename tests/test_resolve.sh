@@ -76,6 +76,7 @@ expect python-patch python-patch 0 "check PASSED"
 expect transitive-conflict transitive-conflict 1 "versions of libd depend on libe<2"
 expect self-pin self-pin 0 "Library: Self_Pin.Library (Core's own pin of it is left out)"
 expect self-pin-setup-py self-pin-setup-py 0 "Library: self-pin-library (Core's own pin of it is left out)"
+expect self-pin-setup-py-second-call self-pin-setup-py-second-call 1 "WARNING: library name not found"
 CORE_DIR="$tests_dir/fixtures/resolve/core-conflict" \
   expect core-conflict indirect-ok 0 "cannot be resolved even without the library"
 PATH="$wheels/stalled-uv:$PATH" expect timeout indirect-ok 0 "timed out after 1s" --timeout 1
