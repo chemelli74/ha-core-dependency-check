@@ -41,15 +41,18 @@ library_args=(
   --setup-cfg "${SETUP_CFG:-setup.cfg}"
   --setup-py "${SETUP_PY:-setup.py}"
   --library-requirements "${LIBRARY_REQUIREMENTS:-requirements.txt}"
-  --core-requirements "$core_dir/requirements_all.txt"
-  --core-requirements "$core_dir/package_constraints.txt"
 )
 
 status=0
 python "$script_dir/check_dependencies.py" "${library_args[@]}" \
+  --core-requirements "$core_dir/requirements_all.txt" \
+  --core-requirements "$core_dir/package_constraints.txt" \
   --core-ref "$core_ref" \
   --missing-policy "${MISSING_POLICY:-warn}" || status=1
 echo
+# Core installs requirements_all.txt under package_constraints.txt
 python "$script_dir/resolve_dependencies.py" "${library_args[@]}" \
+  --core-requirements "$core_dir/requirements_all.txt" \
+  --core-constraints "$core_dir/package_constraints.txt" \
   --core-pyproject "$core_dir/pyproject.toml" || status=1
 exit $status
